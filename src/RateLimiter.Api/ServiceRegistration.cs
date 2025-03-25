@@ -12,7 +12,7 @@ public static class ServiceRegistration
             options.AddFixedWindowLimiter("fixed-window", limiterOptions =>
             {
                 limiterOptions.PermitLimit = 5;
-                limiterOptions.Window = TimeSpan.FromSeconds(30);
+                limiterOptions.Window = TimeSpan.FromSeconds(10);
                 limiterOptions.QueueLimit = 0;
                 limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
             });
@@ -23,7 +23,33 @@ public static class ServiceRegistration
             {
                 // Custom rejection handling logic
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                context.HttpContext.Response.Headers["Retry-After"] = "30s";
+                context.HttpContext.Response.Headers["Retry-After"] = "10s";
+
+                await context.HttpContext.Response.WriteAsync("Too many requests! Please try again later.", cancellationToken);
+            };
+        });
+        
+        return services;
+    }
+    
+    public static IServiceCollection AddSlidingWindowRateLimiter(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.AddSlidingWindowLimiter("sliding-window", rateLimitOptions =>
+            {
+                rateLimitOptions.PermitLimit = 5;
+                rateLimitOptions.Window = TimeSpan.FromSeconds(10);
+                rateLimitOptions.SegmentsPerWindow = 5;
+                rateLimitOptions.QueueLimit = 0;
+                rateLimitOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+            
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                // Custom rejection handling logic
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.HttpContext.Response.Headers["Retry-After"] = "10s";
 
                 await context.HttpContext.Response.WriteAsync("Too many requests! Please try again later.", cancellationToken);
             };
