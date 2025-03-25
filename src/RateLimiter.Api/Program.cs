@@ -14,6 +14,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddFixedWindowRateLimiter();
 builder.Services.AddSlidingWindowRateLimiter();
 builder.Services.AddTokenBucketRateLimiter();
+builder.Services.AddConcurrencyRateLimiter();
 
 
 var app = builder.Build();
@@ -28,6 +29,9 @@ app.MapGet("/rate-limit/sliding-window", () => $"Sliding-window rate limiter: Ti
 
 app.MapGet("/rate-limit/token-bucket", () => $"Token-bucket rate limiter: Time:{GetTime()}")
     .RequireRateLimiting("token-bucket");
+
+app.MapGet("/rate-limit/concurrency", () => $"Concurrency rate limiter: Time:{GetTime()}")
+    .RequireRateLimiting("concurrency");
 
 app.UseRateLimiter();
 

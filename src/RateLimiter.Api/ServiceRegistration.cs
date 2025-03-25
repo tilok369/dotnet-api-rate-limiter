@@ -84,4 +84,28 @@ public static class ServiceRegistration
         
         return services;
     }
+    
+    public static IServiceCollection AddConcurrencyRateLimiter(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.AddConcurrencyLimiter("concurrency", rateLimitOptions =>
+            {
+                rateLimitOptions.PermitLimit = 1;
+                rateLimitOptions.QueueLimit = 0;
+                rateLimitOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+            
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                // Custom rejection handling logic
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.HttpContext.Response.Headers["Retry-After"] = "10s";
+
+                await context.HttpContext.Response.WriteAsync("Too many requests! Please try again later.", cancellationToken);
+            };
+        });
+        
+        return services;
+    }
 }
