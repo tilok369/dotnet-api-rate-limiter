@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using RateLimiter.Api;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,23 +9,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("fixed-window", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 5;
-        limiterOptions.Window = TimeSpan.FromSeconds(30);
-        limiterOptions.QueueLimit = 2;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-});
+builder.Services.AddFixedWindowRateLimiter();
 
 var app = builder.Build();
 
-app.UseRateLimiter();
-
-app.MapGet("/rate-limit/fixed-window", () => "Fixed-window rate limiter")
+static string GetTime() => (DateTime.Now).ToString("HH:mm:ss");
+app.MapGet("/rate-limit/fixed-window", () => $"Fixed-window rate limiter: Ticks:{GetTime()}")
     .RequireRateLimiting("fixed-window");
+
+app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
