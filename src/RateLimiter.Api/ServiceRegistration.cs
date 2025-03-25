@@ -57,4 +57,31 @@ public static class ServiceRegistration
         
         return services;
     }
+    
+    public static IServiceCollection AddTokenBucketRateLimiter(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.AddTokenBucketLimiter("token-bucket", rateLimitOptions =>
+            {
+                rateLimitOptions.TokenLimit = 5;
+                rateLimitOptions.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
+                rateLimitOptions.TokensPerPeriod = 3;
+                rateLimitOptions.QueueLimit = 0;
+                rateLimitOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                rateLimitOptions.AutoReplenishment = true;
+            });
+            
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                // Custom rejection handling logic
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.HttpContext.Response.Headers["Retry-After"] = "10s";
+
+                await context.HttpContext.Response.WriteAsync("Too many requests! Please try again later.", cancellationToken);
+            };
+        });
+        
+        return services;
+    }
 }
